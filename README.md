@@ -15,7 +15,7 @@ It shows the latest data refresh, and refreshes every 30 seconds automatically, 
 This web php script shows some basic stats using the ZoHo Tickets API.
 Currently setup to show Current Open, Closed Today, Average Open Ticket Age, Today's New Tickets (Raised), Created to Resolved radio.
 
-![alt text](https://github.com/kosmro/ServiceDesk/blob/main/Zoho_dash_test.jpg?raw=true)
+![alt text](https://github.com/kosmro/ServiceDesk/blob/main/Zoho_dash_test.png?raw=true)
 
 
 Setup:
