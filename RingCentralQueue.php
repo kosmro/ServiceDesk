@@ -4,6 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
     <meta name="author" content="Robert Kosmac">
+    <script src="assets/js/jquery.min.js"></script>
     <script type="text/javascript">
         
         /** If checkbox unchecked, reload the page every 30 seconds */
@@ -11,7 +12,7 @@
             if(!document.getElementById('ReloadEnable').checked){
                 window.location.reload();
             }
-        }, 30000);
+        }, 60000);
     </script>
 
     <style>
@@ -78,14 +79,23 @@
 
 <?php
 
-$clientId = 'your_client_id'; // Replace with your RingCentral client ID
-$clientSecret = 'your_client_secret'; // Replace with your RingCentral client secret
-$jwt = 'your_generated_jwt'; // Replace with your pre-generated JWT from RingCentral
+/**************************
+ * 
+ * RING CENTRAL Processing
+ * 
+ * ************************/
+
+include 'processing/RingCentral_Setup.php';
+$RingCnt_Config = read_RingCentralConfig();
+
+$ringcentral_clientId = $RingCnt_Config['OAuth']['OAuth_ClientID']; // RingCentral client ID
+$ringcentral_clientSecret = $RingCnt_Config['OAuth']['OAuth_ClientSecret']; // RingCentral client secret
+$ringcentral_jwt = $RingCnt_Config['OAuth']['OAuth_jwt']; // Pre-generated JWT from RingCentral
 
 
 
 /** Authenticate with RingCentral, will get an updated Token for next actions */
-function getAccessToken($clientId, $clientSecret, $jwt) {
+function getRingAccessToken($clientId, $clientSecret, $jwt) {
     $url = 'https://platform.ringcentral.com/restapi/oauth/token';
     $headers = [
         'Authorization: Basic ' . base64_encode($clientId . ':' . $clientSecret),
@@ -119,7 +129,7 @@ function getAccessToken($clientId, $clientSecret, $jwt) {
 
 
 /** Get the queue data */
-function getCallQueueDetails($accessToken) {
+function getRingCallQueueDetails($accessToken) {
     $url = 'https://platform.ringcentral.com/restapi/v1.0/account/~/call-queues';
     $headers = [
         'Authorization: Bearer ' . $accessToken
@@ -139,7 +149,7 @@ function getCallQueueDetails($accessToken) {
     return $result['records'];
 }
 
-function getCallQueueCalls($accessToken, $queueId) {
+function getRingCallQueueCalls($accessToken, $queueId) {
     $url = "https://platform.ringcentral.com/restapi/v1.0/account/~/extension/$queueId/active-calls"; // Example endpoint
     $headers = [
         'Authorization: Bearer ' . $accessToken
@@ -158,7 +168,7 @@ function getCallQueueCalls($accessToken, $queueId) {
     $result = json_decode($response, true);
     return $result['records'];
 }
-function getQueueAnalytics($accessToken, $queueId) {
+function getRingQueueAnalytics($accessToken, $queueId) {
     $url = "https://analytics.ringcentral.com/platform/v1/queues/$queueId/summary"; // Example endpoint, check the actual API documentation
     $headers = [
         'Authorization: Bearer ' . $accessToken
@@ -178,7 +188,7 @@ function getQueueAnalytics($accessToken, $queueId) {
     return $result;
 }
 
-function getTotalCallsToday($accessToken, $queueId) {
+function getRingTotalCallsToday($accessToken, $queueId) {
     $url = 'https://platform.ringcentral.com/restapi/v1.0/account/~/extension/' . $queueId . '/call-log';
     $headers = [
         'Authorization: Bearer ' . $accessToken,
@@ -215,7 +225,7 @@ function getTotalCallsToday($accessToken, $queueId) {
 
 
 /** Output the active call count for each queue */
-function displayCallQueueDetails($queues, $accessToken) {
+function displayRingCallQueueDetails($queues, $accessToken) {
 
     $display_waitlimit_seconds = 120; // 2 minute wait time
     $callqueue_highlimit = 20; // 20 calls in queue
@@ -246,7 +256,7 @@ function displayCallQueueDetails($queues, $accessToken) {
 
 
             // Fetch call details for the queue
-            $calls = getCallQueueCalls($accessToken, $queueId);
+            $calls = getRingCallQueueCalls($accessToken, $queueId);
             $activeCallCount = count($calls);
             $connectedCallCount = 0;
             foreach ($calls as $call) {
@@ -256,10 +266,10 @@ function displayCallQueueDetails($queues, $accessToken) {
             }
 
             // Fetch analytics data for the queue
-            $analytics = getQueueAnalytics($accessToken, $queue['id']);
+            $analytics = getRingQueueAnalytics($accessToken, $queue['id']);
             $averageWaitTime = $analytics['averageWaitTime'] ?? 'N/A';
 
-            $totalCallsToday = getTotalCallsToday($accessToken, $queueId);
+            $totalCallsToday = getRingTotalCallsToday($accessToken, $queueId);
 
 
 
@@ -306,18 +316,44 @@ function displayCallQueueDetails($queues, $accessToken) {
 }
 
 
-
 /** Call above scripts */
-$accessToken = getAccessToken($clientId, $clientSecret, $jwt);
-$queues = getCallQueueDetails($accessToken);
-displayCallQueueDetails($queues, $accessToken);
+$ring_accessToken = getRingAccessToken($ringcentral_clientId, $ringcentral_clientSecret, $ringcentral_jwt);
+$ringcentral_queues = getRingCallQueueDetails($ring_accessToken);
+displayRingCallQueueDetails($ringcentral_queues, $ring_accessToken);
+
+
+
+
+
+
+
+
+
+
+
+
+/**************************
+ * 
+ *  ZOHO ONE Processing
+ * 
+ * 
+ * 
+ *  Setup:
+ *      1. Head to https://api-console.zoho.com.au/ and start setup of new connection
+ *      2. Choose type "Self Client"
+ *      3. Copy-Paste the Secret and Client ID into the below variables
+ *      4. Set the SCOPE of "Desk.tickets.ALL", and input the scope description (not sure if this matters)
+ *      5. Select the Portal and an authorised Desk platform
+ *      6. When you select Generate, it will generate the REFRESH token - default is 3 minutes.
+ * 
+ * ************************/
 
 
 ?>
 
 <br />
 <input type="checkbox" id="ReloadEnable" name="ReloadEnable" value="Enable Reload">
-<label for="ReloadEnable"> Pause 30 second reload?</label><br>
+<label for="ReloadEnable"> Pause 60 second reload?</label><br>
 
 
 </body>
