@@ -86,7 +86,7 @@ function update_ZoHoConfig($status, $workspace, $oa_clientid, $oa_secret, $oa_au
             'OAuth_AccessToken' => $oa_accesstoken,
             'OAuth_Expire' => $oa_expiry //In Unix/EPoch time
             ),
-        'LastSave' => date('H:ia j m Y'),
+        'LastSave' => date('U'),
         );
 
     //Write out to file

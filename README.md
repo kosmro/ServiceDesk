@@ -7,7 +7,7 @@
 This web php script shows some basic stats using the ZoHo Tickets API.
 Currently setup to show Current Open, Closed Today, Average Open Ticket Age, Today's New Tickets (Raised), Created to Resolved radio.
 
-![alt text](https://github.com/kosmro/ServiceDesk/blob/main/Zoho_dash_test.png?raw=true)
+![ZoHo Ticket Dash](https://github.com/kosmro/ServiceDesk/blob/main/Zoho_dash_test.png?raw=true)
 
 
 ZoHo Dash Setup:
@@ -17,6 +17,8 @@ ZoHo Dash Setup:
  4. Set the SCOPE of "Desk.tickets.ALL", and input the scope description (not sure if this matters)
  5. Select the Portal and an authorised Desk platform
  6. When you select Generate, it will generate the REFRESH token - set whatever time you need, typically 3 minutes will be plenty.
+
+![Dash Settings](https://github.com/kosmro/ServiceDesk/blob/main/System_Setup.png?raw=true)
 
 
 

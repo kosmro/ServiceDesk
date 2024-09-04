@@ -200,6 +200,11 @@
             border-radius: 4px;
             box-sizing: border-box;
         }
+        input.display_input,textarea.display_input{
+            background-color: rgba(100,100,100,0.25);
+            resize: none;
+        }
+
         select{
             padding: 6px 10px;
             margin: 2px 0 5px 0;
@@ -308,6 +313,15 @@
     print '<input type="text" id="auth_id" name="auth_id" placeholder="OAuth ID" value="'.$auth_config['OAuth_ClientID'].'" /></td>';
     print '<td><label for="auth_secret" >OAuth Client Secret</label><br/>';
     print '<input type="password" id="auth_secret" name="auth_secret" placeholder="OAuth Secret" value="'.$auth_config['OAuth_ClientSecret'].'" /></td></tr>';
+
+
+     print '<tr><td><label for="auth_expire_time" >OAuth Expiry</label><br/>';
+    print '<input type="text" id="auth_expire_time" name="auth_expire_time" placeholder="OAuth Expiry" class="display_input" value="'.date('h:ia, jS M Y', $auth_config['OAuth_Expire']).'" disabled/></td>';
+    print '<td><label for="zoho_lastcnf_save" >Last Save</label><br/>';
+    print '<input type="text" id="zoho_lastcnf_save" name="zoho_lastcnf_save" placeholder="Last Save" class="display_input" value="'.date('h:ia, jS M Y', $zoho_config['LastSave']).'" disabled/></td></tr>';
+
+
+
 ?>
                     
                     <tr>
@@ -358,7 +372,7 @@
         <td colspan="2">
             <div class="SettingSection CentredDiv">
                 <hr/>
-                <textarea id="auth_results" cols="60" rows="12" style="resize:none; background-color:rgba(100,100,100,0.25);"></textarea>
+                <textarea id="auth_results" cols="60" rows="12" class="display_input" placeholder="Response output will be here"></textarea>
             </div>
         </td>
     </tr>

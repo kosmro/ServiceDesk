@@ -54,7 +54,7 @@ function update_RingCentralConfig($status, $queue_name, $client_id, $client_secr
                     'OAuth_ClientSecret' => $client_secret,
                     'OAuth_jwt' => $oauth_jwt,
                     ),
-            'LastSave' => date('H:ia j m Y'),
+            'LastSave' => date('U'),
         );
 
     //Write out to file
