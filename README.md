@@ -2,7 +2,7 @@
  Service Desk tools I find useful or cool
 
 
-## ZoHo Tickets Dash
+## Zoho Tickets Dash
 **ZoHoDash.php**
 This web php script shows some basic stats using the ZoHo Tickets API.
 Currently setup to show Current Open, Closed Today, Average Open Ticket Age, Today's New Tickets (Raised), Created to Resolved radio.
@@ -10,7 +10,7 @@ Currently setup to show Current Open, Closed Today, Average Open Ticket Age, Tod
 ![ZoHo Ticket Dash](https://github.com/kosmro/ServiceDesk/blob/main/Zoho_dash_test.png?raw=true)
 
 
-#### ZoHo Setup:
+#### Zoho Setup:
  1. Head to https://api-console.zoho.com.au/ and start setup of new connection
  2. Choose type "Self Client"
  3. Copy-Paste the Secret and Client ID into the below variables
