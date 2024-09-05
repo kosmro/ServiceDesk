@@ -141,7 +141,7 @@ function refreshZohoAccessToken($ZoHo_Config){
         'refresh_token' => $ZoHo_Config['OAuth']['OAuth_RefreshToken'],
         'client_id' => $ZoHo_Config['OAuth']['OAuth_ClientID'],
         'client_secret' => $ZoHo_Config['OAuth']['OAuth_ClientSecret'],
-        'scope' => 'Desk.search.READ,Desk.tickets.READ',
+        'scope' => 'Desk.search.READ,Desk.tickets.READ,Desk.contacts.READ,Desk.tasks.READ',
         'redirect_uri' => 'http://example.com/callbackurl',
         'grant_type' => 'refresh_token'
     ]);

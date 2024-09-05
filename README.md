@@ -14,7 +14,7 @@ Currently setup to show Current Open, Closed Today, Average Open Ticket Age, Tod
  1. Head to https://api-console.zoho.com.au/ and start setup of new connection
  2. Choose type "Self Client"
  3. Copy-Paste the Secret and Client ID into the below variables
- 4. Set the SCOPE of "Desk.tickets.ALL", and input the scope description (not sure if this matters)
+ 4. Set the SCOPE of "Desk.search.READ,Desk.tickets.READ,Desk.contacts.READ,Desk.tasks.READ", and input the scope description (not sure if this matters)
  5. Select the Portal and an authorised Desk platform
  6. When you select Generate, it will generate the REFRESH token - set whatever time you need, typically 3 minutes will be plenty.
 
