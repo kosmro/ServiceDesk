@@ -44,6 +44,7 @@
                 fd.append('workspace', $("#namespace").val() );
                 fd.append('api_OrgID', $("#api_orgid").val() );
                 fd.append('api_DeskID', $("#api_department").val() );
+                fd.append('ServerLocal', $("#zohoserver_local").val() );
 
             //Send all data to the CREATE PHP script
             $.ajax({
@@ -204,6 +205,9 @@
             background-color: rgba(100,100,100,0.25);
             resize: none;
         }
+        input.oauth_input{
+            background-color: rgba(184,184,255,0.3);
+        }
 
         select{
             padding: 6px 10px;
@@ -215,6 +219,11 @@
             font-size: 1.1em;
             font-weight: bold;
             float: right;
+        }
+
+        select.zohoserver_local{
+            float: none;
+            font-weight: 100;
         }
 
         input[type=button] {
@@ -302,10 +311,10 @@
     print '<input type="hidden" id="zoho_enabledflag" value="'.$zoho_config['enabled'].'" />'; //hidden input for Enable Flag
     print '<input type="text" id="namespace" name="namespace" placeholder="ZoHo NameSpace" value="'.$zoho_config['workspace_name'].'" /></td>';
     print '<td><label for="api_orgid" >ZoHo API Organisation ID</label><br/>';
-    print '<input type="text" id="api_orgid" name="api_orgid" placeholder="ZZoHo API Organisation ID" value="'.$zoho_config['api_OrgID'].'" /></td></tr>';
+    print '<input type="text" id="api_orgid" name="api_orgid" placeholder="ZoHo API Organisation ID" value="'.$zoho_config['api_OrgID'].'" /></td></tr>';
 
     print '<tr><td><label for="auth_code" >OAuth Self Code</label><br/>';
-    print '<input type="text" id="auth_code" name="auth_code" placeholder="OAuth Link Code" value="'.$auth_config['OAuth_InitCode'].'" /></td>';
+    print '<input type="text" id="auth_code" name="auth_code" class="oauth_input" placeholder="Generated OAuth Link Code" value="'.$auth_config['OAuth_InitCode'].'" /></td>';
     print '<td><label for="api_department" >ZoHo Ticket Department</label><br/>';
     print '<input type="text" id="api_department" name="api_department" placeholder="ZoHo Ticket Department" value="'.$zoho_config['api_DeskDepartment'].'" /></td></tr>';
 
@@ -314,8 +323,20 @@
     print '<td><label for="auth_secret" >OAuth Client Secret</label><br/>';
     print '<input type="password" id="auth_secret" name="auth_secret" placeholder="OAuth Secret" value="'.$auth_config['OAuth_ClientSecret'].'" /></td></tr>';
 
+    print '<tr><td><label for="auth_expire_time" >Zoho Server Location</label><br/>';
+    print '<select id="zohoserver_local" class="zohoserver_local" name="zohoserver_local" >';
+        switch( $zoho_config['ServerLocal'] ){
+            case 'AU':
+                print '<option value="AU" selected>Australia</option><option value="US" >United States</option>';
+                break;
+            default:
+                print '<option value="AU" >Australia</option><option value="US" selected>United States</option>';
+                break;
+        }
+    print '</select></td>';
+    print '<td><br/></td></tr>';
 
-     print '<tr><td><label for="auth_expire_time" >OAuth Expiry</label><br/>';
+    print '<tr><td><label for="auth_expire_time" >OAuth Expiry</label><br/>';
     print '<input type="text" id="auth_expire_time" name="auth_expire_time" placeholder="OAuth Expiry" class="display_input" value="'.date('h:ia, jS M Y', $auth_config['OAuth_Expire']).'" disabled/></td>';
     print '<td><label for="zoho_lastcnf_save" >Last Save</label><br/>';
     print '<input type="text" id="zoho_lastcnf_save" name="zoho_lastcnf_save" placeholder="Last Save" class="display_input" value="'.date('h:ia, jS M Y', $zoho_config['LastSave']).'" disabled/></td></tr>';

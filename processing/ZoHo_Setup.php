@@ -10,11 +10,11 @@ include_once 'common.php';
 if( isset($_POST['request']) && $_POST['request'] == 'regRefresh' ){
 
     //write_to_file(PROC_PATH."zoho.txt", "*******************");
-	$response = generateZohoAccessToken($_POST['code'], $_POST['id'], $_POST['secret']);
+	$response = generateZohoAccessToken($_POST['code'], $_POST['id'], $_POST['secret'], $_POST['server_local']);
 
     if( isset($response['token_type']) && $response['token_type'] == "Bearer" ){
          //write_to_file("zoho.txt", $response['access_token']);
-        echo update_ZoHoConfig($_POST['status'], $_POST['workspace'], $_POST['id'], $_POST['secret'], $_POST['code'], $response['refresh_token'], $response['access_token'], date('U', strtotime('+'.$response['expires_in'].' seconds')), $_POST['api_OrgID'], $_POST['api_DeskID'] );
+        echo update_ZoHoConfig($_POST['status'], $_POST['workspace'], $_POST['id'], $_POST['secret'], $_POST['code'], $response['refresh_token'], $response['access_token'], date('U', strtotime('+'.$response['expires_in'].' seconds')), $_POST['api_OrgID'], $_POST['api_DeskID'], $_POST['server_local'] );
     }
 
 }
@@ -27,7 +27,7 @@ if( isset($_POST['request']) && $_POST['request'] == 'tokenRefresh' ){
     print_r( $response );
 
     if( isset($response['token_type']) && $response['token_type'] == "Bearer" ){
-        echo update_ZoHoConfig($existing_zoho['enabled'], $existing_zoho['workspace_name'], $existing_zoho['OAuth']['OAuth_ClientID'], $existing_zoho['OAuth']['OAuth_ClientSecret'], $existing_zoho['OAuth']['OAuth_InitCode'], $existing_zoho['OAuth']['OAuth_RefreshToken'], $response['access_token'], date('U', strtotime('+'.$response['expires_in'].' seconds')), $existing_zoho['api_OrgID'], $existing_zoho['api_DeskDepartment'] );
+        echo update_ZoHoConfig($existing_zoho['enabled'], $existing_zoho['workspace_name'], $existing_zoho['OAuth']['OAuth_ClientID'], $existing_zoho['OAuth']['OAuth_ClientSecret'], $existing_zoho['OAuth']['OAuth_InitCode'], $existing_zoho['OAuth']['OAuth_RefreshToken'], $response['access_token'], date('U', strtotime('+'.$response['expires_in'].' seconds')), $existing_zoho['api_OrgID'], $existing_zoho['api_DeskDepartment'], $existing_zoho['ServerLocal'] );
     }
 
 }
@@ -57,6 +57,7 @@ function read_ZoHoConfig(){
                 'OAuth_Expire' => 0 //In Unix/EPoch time
 				),
 			'LastSave' => '',
+            'ServerLocal' => 'AU',
 			);
 
 		//Write out to file
@@ -68,7 +69,7 @@ function read_ZoHoConfig(){
 	return $config['ZoHo'];
 }
 
-function update_ZoHoConfig($status, $workspace, $oa_clientid, $oa_secret, $oa_authcode, $oa_refreshtoken, $oa_accesstoken, $oa_expiry, $orgid, $deptid){
+function update_ZoHoConfig($status, $workspace, $oa_clientid, $oa_secret, $oa_authcode, $oa_refreshtoken, $oa_accesstoken, $oa_expiry, $orgid, $deptid, $serverlocal){
     $read_out = read_from_config();
     $config = json_decode($read_out, true);
 
@@ -87,6 +88,7 @@ function update_ZoHoConfig($status, $workspace, $oa_clientid, $oa_secret, $oa_au
             'OAuth_Expire' => $oa_expiry //In Unix/EPoch time
             ),
         'LastSave' => date('U'),
+        'ServerLocal' => $serverlocal,
         );
 
     //Write out to file
@@ -100,8 +102,18 @@ function update_ZoHoConfig($status, $workspace, $oa_clientid, $oa_secret, $oa_au
 
 
 /** Initial registration - Create the RefreshToken */
-function generateZohoAccessToken($authcode, $clientId, $clientSecret){
+function generateZohoAccessToken($authcode, $clientId, $clientSecret, $server_local){
 
+    //Set call URL extension
+    $server_url_local = ".com";
+    switch( $server_local ){
+        case "AU":
+            $server_url_local = ".com.au";
+            break;
+        default:
+            $server_url_local = ".com";
+            break;
+    }
 
 	$queryParams = http_build_query([
         'code' => $authcode,
@@ -114,7 +126,7 @@ function generateZohoAccessToken($authcode, $clientId, $clientSecret){
 
 
     $ch = curl_init();
-    curl_setopt($ch, CURLOPT_URL, "https://accounts.zoho.com.au/oauth/v2/token");
+    curl_setopt($ch, CURLOPT_URL, "https://accounts.zoho".$server_url_local."/oauth/v2/token");
     curl_setopt($ch, CURLOPT_POST, 1);
     curl_setopt($ch, CURLOPT_POSTFIELDS, $queryParams);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
@@ -136,6 +148,16 @@ function generateZohoAccessToken($authcode, $clientId, $clientSecret){
 /** Refresh the OAuth Token */
 function refreshZohoAccessToken($ZoHo_Config){
 
+    //Set call URL extension
+    $server_url_local = ".com";
+    switch( $ZoHo_Config['ServerLocal'] ){
+        case "AU":
+            $server_url_local = ".com.au";
+            break;
+        default:
+            $server_url_local = ".com";
+            break;
+    }
 
     $queryParams = http_build_query([
         'refresh_token' => $ZoHo_Config['OAuth']['OAuth_RefreshToken'],
@@ -149,7 +171,7 @@ function refreshZohoAccessToken($ZoHo_Config){
 
 
     $ch = curl_init();
-    curl_setopt($ch, CURLOPT_URL, "https://accounts.zoho.com.au/oauth/v2/token");
+    curl_setopt($ch, CURLOPT_URL, "https://accounts.zoho".$server_url_local."/oauth/v2/token");
     curl_setopt($ch, CURLOPT_POST, 1);
     curl_setopt($ch, CURLOPT_POSTFIELDS, $queryParams);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);

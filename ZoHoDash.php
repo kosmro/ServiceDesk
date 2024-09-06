@@ -110,7 +110,7 @@ if( date('U') >= $zoho_config['OAuth']['OAuth_Expire'] ){
     $response = refreshZohoAccessToken($zoho_config);
 
     if( isset($response['token_type']) && $response['token_type'] == "Bearer" ){
-        update_ZoHoConfig($zoho_config['enabled'], $zoho_config['workspace_name'], $zoho_config['OAuth']['OAuth_ClientID'], $zoho_config['OAuth']['OAuth_ClientSecret'], $zoho_config['OAuth']['OAuth_InitCode'], $zoho_config['OAuth']['OAuth_RefreshToken'], $response['access_token'], date('U', strtotime('+'.$response['expires_in'].' seconds')), $zoho_config['api_OrgID'], $zoho_config['api_DeskDepartment'] );
+        update_ZoHoConfig($zoho_config['enabled'], $zoho_config['workspace_name'], $zoho_config['OAuth']['OAuth_ClientID'], $zoho_config['OAuth']['OAuth_ClientSecret'], $zoho_config['OAuth']['OAuth_InitCode'], $zoho_config['OAuth']['OAuth_RefreshToken'], $response['access_token'], date('U', strtotime('+'.$response['expires_in'].' seconds')), $zoho_config['api_OrgID'], $zoho_config['api_DeskDepartment'], $zoho_config['ServerLocal'] );
 
 
         //Update in memory for use below in the calls
@@ -141,6 +141,18 @@ if( date('U') >= $zoho_config['OAuth']['OAuth_Expire'] ){
 
 function getAllZohoTickets_CreatedToday($ZoHoConfig){
 
+    //Set call URL extension
+    $server_local = ".com";
+    switch( $ZoHoConfig['ServerLocal'] ){
+        case "AU":
+            $server_local = ".com.au";
+            break;
+        default:
+            $server_local = ".com";
+            break;
+    }
+
+
     $start_day = converToTz(date('Y-m-d 00:00:00'),'UTC', date_default_timezone_get());
     $now_time = converToTz(date('Y-m-d H:i:s'),'UTC', date_default_timezone_get());
     
@@ -159,7 +171,7 @@ function getAllZohoTickets_CreatedToday($ZoHoConfig){
             'sortBy' => 'modifiedTime'
             ]);
 
-    curl_setopt($ch, CURLOPT_URL, "https://desk.zoho.com.au/api/v1/tickets/search?".$dataParams); //I DON'T know why, but the ZoHo API is INSISTING that it be taken this way....I probs missed something
+    curl_setopt($ch, CURLOPT_URL, "https://desk.zoho".$server_local."/api/v1/tickets/search?".$dataParams); //I DON'T know why, but the ZoHo API is INSISTING that it be taken this way....I probs missed something
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     
     curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 1);
@@ -191,6 +203,17 @@ function converToTz($time="",$toTz='',$fromTz=''){
 
 
 function getAllOpenZohoTickets($ZoHoConfig){
+
+    //Set call URL extension
+    $server_local = ".com";
+    switch( $ZoHoConfig['ServerLocal'] ){
+        case "AU":
+            $server_local = ".com.au";
+            break;
+        default:
+            $server_local = ".com";
+            break;
+    }
     
     // Initialize cURL session
     $ch = curl_init();
@@ -206,7 +229,7 @@ function getAllOpenZohoTickets($ZoHoConfig){
             'sortBy' => 'modifiedTime'
             ]);
 
-    curl_setopt($ch, CURLOPT_URL, "https://desk.zoho.com.au/api/v1/tickets/search?".$dataParams); //I DON'T know why, but the ZoHo API is INSISTING that it be taken this way....I probs missed something
+    curl_setopt($ch, CURLOPT_URL, "https://desk.zoho".$server_local."/api/v1/tickets/search?".$dataParams); //I DON'T know why, but the ZoHo API is INSISTING that it be taken this way....I probs missed something
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     
     curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 1);
@@ -230,6 +253,18 @@ function getAllOpenZohoTickets($ZoHoConfig){
 
 function getAllZohoTickets_ClosedToday($ZoHoConfig, $offset){
 
+    //Set call URL extension
+    $server_local = ".com";
+    switch( $ZoHoConfig['ServerLocal'] ){
+        case "AU":
+            $server_local = ".com.au";
+            break;
+        default:
+            $server_local = ".com";
+            break;
+    }
+
+
     $start_day = converToTz(date('Y-m-d 00:00:00', strtotime('-2weeks')),'UTC', date_default_timezone_get()); //starting from 2 weeks ago
     $now_time = converToTz(date('Y-m-d H:i:s'),'UTC', date_default_timezone_get());
     
@@ -250,7 +285,7 @@ function getAllZohoTickets_ClosedToday($ZoHoConfig, $offset){
             'sortBy' => 'modifiedTime'
             ]);
     
-    curl_setopt($ch, CURLOPT_URL, "https://desk.zoho.com.au/api/v1/tickets/search?".$dataParams); //I DON'T know why, but the ZoHo API is INSISTING that it be taken this way....I probs missed something
+    curl_setopt($ch, CURLOPT_URL, "https://desk.zoho".$server_local."/api/v1/tickets/search?".$dataParams); //I DON'T know why, but the ZoHo API is INSISTING that it be taken this way....I probs missed something
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     
     curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 1);
