@@ -44,7 +44,7 @@
                 fd.append('workspace', $("#namespace").val() );
                 fd.append('api_OrgID', $("#api_orgid").val() );
                 fd.append('api_DeskID', $("#api_department").val() );
-                fd.append('ServerLocal', $("#zohoserver_local").val() );
+                fd.append('server_local', $("#zohoserver_local").val() );
 
             //Send all data to the CREATE PHP script
             $.ajax({
