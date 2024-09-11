@@ -7,7 +7,7 @@
 This web php script shows some basic stats using the ZoHo Tickets API.
 Currently setup to show Current Open, Closed Today, Average Open Ticket Age, Today's New Tickets (Raised), Created to Resolved radio.
 
-![ZoHo Ticket Dash](https://github.com/kosmro/ServiceDesk/blob/main/Zoho_dash_test.png?raw=true)
+![ZoHo Ticket Dash](https://github.com/kosmro/ServiceDesk/blob/main/Zoho_dash_11Sept.png?raw=true)
 
 
 #### Zoho Setup:
