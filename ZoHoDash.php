@@ -36,6 +36,16 @@
             display: inline-block;
             vertical-align: text-top;
         }
+         div.error-view{
+            width: 25%;
+            padding: 1em;
+            text-align: center;
+            word-wrap: normal;
+            background-color: rgba(100, 100, 100, 0.2);
+            font-style: oblique;
+            color: rgba(50, 50, 50, 0.7);
+            border-radius: 4px;
+        }
         table.primarystats{
             width: 100%;
             font-size: 14pt;
@@ -149,6 +159,17 @@ if( date('U') >= $zoho_config['OAuth']['OAuth_Expire'] ){
         $ranking_info = rankingFetch_processResults($zoho_config);
 
         displayZoHoTicketStats($all_zoho_tickets, $todays_zoho_tickets, $todayclosed_zoho_tickets, $ranking_info);
+
+    }else{
+        if(isset($response['error']) && $response['error'] != '' && isset($response['error_description']) && $response['error_description'] != ''){
+            $err_msg = $response['error'] . "<br />" . $response['error_description'];
+        }else if(isset($response['error']) && $response['error'] != '' && (!isset($response['error_description']) || $response['error_description'] == '')){
+            $err_msg = $response['error'];
+        }else{
+            $err_msg = "Zoho OAuth Token Refresh eperienced an issue. Please try setting up your Auth again in the Setup panel.";
+        }
+        $output_html = '<h2>An error has occurred</h2><br /><div class="error-view">'.$err_msg.'</div>';
+        print($output_html);
     }
 
 }else{

@@ -306,6 +306,12 @@
     $zoho_config = read_ZoHoConfig();
     $auth_config = $zoho_config['OAuth'];
 
+    //check certain values
+    if( $zoho_config['OAuth_Expire'] == '' || is_null($zoho_config['OAuth_Expire']) ){ $zoho_oauth_exp = 'Not Generated'; }
+        else{ $zoho_oauth_exp = date('h:ia, jS M Y', $zoho_config['OAuth_Expire']); }
+    if( $zoho_config['LastSave'] == '' || is_null($zoho_config['LastSave']) ){ $last_save_date = 'Not Generated'; }
+        else{ $last_save_date = date('h:ia, jS M Y', $zoho_config['LastSave']); }
+
     
     print '<tr><td><label for="namespace" >ZoHo Name Space</label><br/>';
     print '<input type="hidden" id="zoho_enabledflag" value="'.$zoho_config['enabled'].'" />'; //hidden input for Enable Flag
@@ -337,11 +343,9 @@
     print '<td><br/></td></tr>';
 
     print '<tr><td><label for="auth_expire_time" >OAuth Expiry</label><br/>';
-    print '<input type="text" id="auth_expire_time" name="auth_expire_time" placeholder="OAuth Expiry" class="display_input" value="'.date('h:ia, jS M Y', $auth_config['OAuth_Expire']).'" disabled/></td>';
+    print '<input type="text" id="auth_expire_time" name="auth_expire_time" placeholder="OAuth Expiry" class="display_input" value="'.$zoho_oauth_exp.'" disabled/></td>';
     print '<td><label for="zoho_lastcnf_save" >Last Save</label><br/>';
-    print '<input type="text" id="zoho_lastcnf_save" name="zoho_lastcnf_save" placeholder="Last Save" class="display_input" value="'.date('h:ia, jS M Y', $zoho_config['LastSave']).'" disabled/></td></tr>';
-
-
+    print '<input type="text" id="zoho_lastcnf_save" name="zoho_lastcnf_save" placeholder="Last Save" class="display_input" value="'.$last_save_date.'" disabled/></td></tr>';
 
 ?>
                     
