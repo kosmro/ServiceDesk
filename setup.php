@@ -45,6 +45,7 @@
                 fd.append('api_OrgID', $("#api_orgid").val() );
                 fd.append('api_DeskID', $("#api_department").val() );
                 fd.append('server_local', $("#zohoserver_local").val() );
+                fd.append('ticket_openstat', $("#zohotickets_openstatus").html());
 
             //Send all data to the CREATE PHP script
             $.ajax({
@@ -193,7 +194,7 @@
         }
 
         input[type='text'],input[type=password]{
-            width: 85%;
+            width: 90%;
             padding: 12px 20px;
             margin: 3px 0 8px 0;
             display: inline-block;
@@ -203,6 +204,9 @@
         }
         input.display_input,textarea.display_input{
             background-color: rgba(100,100,100,0.25);
+            resize: none;
+        }
+        textarea.input_textarea{
             resize: none;
         }
         input.oauth_input{
@@ -307,8 +311,8 @@
     $auth_config = $zoho_config['OAuth'];
 
     //check certain values
-    if( $zoho_config['OAuth_Expire'] == '' || is_null($zoho_config['OAuth_Expire']) ){ $zoho_oauth_exp = 'Not Generated'; }
-        else{ $zoho_oauth_exp = date('h:ia, jS M Y', $zoho_config['OAuth_Expire']); }
+    if( $auth_config['OAuth_Expire'] == '' || is_null($auth_config['OAuth_Expire']) ){ $zoho_oauth_exp = 'Not Generated'; }
+        else{ $zoho_oauth_exp = date('h:ia, jS M Y', $auth_config['OAuth_Expire']); }
     if( $zoho_config['LastSave'] == '' || is_null($zoho_config['LastSave']) ){ $last_save_date = 'Not Generated'; }
         else{ $last_save_date = date('h:ia, jS M Y', $zoho_config['LastSave']); }
 
@@ -340,7 +344,10 @@
                 break;
         }
     print '</select></td>';
-    print '<td><br/></td></tr>';
+    
+    print '<td><label for="api_department" >ZoHo Ticket Open Status</label><br/>';
+    print '<textarea class="input_textarea" id="zohotickets_openstatus" name="zohotickets_openstatus" placeholder="ZoHo Ticket Status: Open,In Progress,Hold" cols="25" rows="4" >'.$zoho_config['tickets_openstatus'].'</textarea></td></tr>';
+    print '</tr>';
 
     print '<tr><td><label for="auth_expire_time" >OAuth Expiry</label><br/>';
     print '<input type="text" id="auth_expire_time" name="auth_expire_time" placeholder="OAuth Expiry" class="display_input" value="'.$zoho_oauth_exp.'" disabled/></td>';

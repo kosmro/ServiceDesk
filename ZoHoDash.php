@@ -19,8 +19,9 @@
             if(!document.getElementById('ReloadEnable').checked){
                 window.location.reload();
             }
-        }, 60000);
+        }, 120000);
         
+
     </script>
 
     <style>
@@ -139,24 +140,35 @@
  * 
  * ************************/
 
+
 include 'processing/ZoHo_Setup.php';
 $zoho_config = read_ZoHoConfig();
+$start_month1 = converToTz(date('Y-m-d 00:00:00', strtotime('first day of this month')),'UTC', date_default_timezone_get());
+$end_month1 = converToTz(date('Y-m-d 23:59:59', strtotime('last day of this month')),'UTC', date_default_timezone_get());
+
 
 
 if( date('U') >= $zoho_config['OAuth']['OAuth_Expire'] ){
+
+    //print_r( "Token is old" );
+
     $response = refreshZohoAccessToken($zoho_config);
 
     if( isset($response['token_type']) && $response['token_type'] == "Bearer" ){
-        update_ZoHoConfig($zoho_config['enabled'], $zoho_config['workspace_name'], $zoho_config['OAuth']['OAuth_ClientID'], $zoho_config['OAuth']['OAuth_ClientSecret'], $zoho_config['OAuth']['OAuth_InitCode'], $zoho_config['OAuth']['OAuth_RefreshToken'], $response['access_token'], date('U', strtotime('+'.$response['expires_in'].' seconds')), $zoho_config['api_OrgID'], $zoho_config['api_DeskDepartment'], $zoho_config['ServerLocal'] );
+        update_ZoHoConfig($zoho_config['enabled'], $zoho_config['workspace_name'], $zoho_config['OAuth']['OAuth_ClientID'], $zoho_config['OAuth']['OAuth_ClientSecret'], $zoho_config['OAuth']['OAuth_InitCode'], $zoho_config['OAuth']['OAuth_RefreshToken'], $response['access_token'], date('U', strtotime('+'.$response['expires_in'].' seconds')), $zoho_config['api_OrgID'], $zoho_config['api_DeskDepartment'], $zoho_config['ServerLocal'], $zoho_config['tickets_openstatus'] );
 
 
         //Update in memory for use below in the calls
         $zoho_config['OAuth']['OAuth_AccessToken'] = $response['access_token'];
 
-        $all_zoho_tickets = openTickets_filterProcessing($zoho_config);
-        $todays_zoho_tickets = createdToday_filterProcessing($zoho_config);
-        $todayclosed_zoho_tickets = closedTickets_filterProcessing($zoho_config);
-        $ranking_info = rankingFetch_processResults($zoho_config);
+        $tickets_thismonth = monthlyFetch_filterProcessing($zoho_config);
+        $tickets_allopen = openTickets_filterProcessing($zoho_config);
+
+
+        $all_zoho_tickets = $tickets_allopen;
+        $todays_zoho_tickets = createdToday_filterProcessing($tickets_thismonth);
+        $todayclosed_zoho_tickets = closedTickets_filterProcessing($tickets_thismonth);
+        $ranking_info = rankingFetch_processResults($tickets_thismonth); //json_encode( ['customer_ranking' => array(), 'staff_ownership' => array()] );
 
         displayZoHoTicketStats($all_zoho_tickets, $todays_zoho_tickets, $todayclosed_zoho_tickets, $ranking_info);
 
@@ -174,12 +186,15 @@ if( date('U') >= $zoho_config['OAuth']['OAuth_Expire'] ){
 
 }else{
 
-    $all_zoho_tickets = openTickets_filterProcessing($zoho_config);
-    $todays_zoho_tickets = createdToday_filterProcessing($zoho_config);
-    $todayclosed_zoho_tickets = closedTickets_filterProcessing($zoho_config);
-    $ranking_info = rankingFetch_processResults($zoho_config);
+    $tickets_thismonth = monthlyFetch_filterProcessing($zoho_config);
+    $tickets_allopen = openTickets_filterProcessing($zoho_config);
 
-    //print_r( $ranking_info );
+
+    $all_zoho_tickets = $tickets_allopen;
+    $todays_zoho_tickets = createdToday_filterProcessing($tickets_thismonth);
+    $todayclosed_zoho_tickets = closedTickets_filterProcessing($tickets_thismonth);
+    $ranking_info = rankingFetch_processResults($tickets_thismonth); //json_encode( ['customer_ranking' => array(), 'staff_ownership' => array()] );
+
 
     displayZoHoTicketStats($all_zoho_tickets, $todays_zoho_tickets, $todayclosed_zoho_tickets, $ranking_info);
 }
@@ -187,92 +202,24 @@ if( date('U') >= $zoho_config['OAuth']['OAuth_Expire'] ){
 
 
 
-
-/***********************************
- *     TICKETS CREATED TODAY
- ***********************************/
-
-function getAllZohoTickets_CreatedToday($ZoHoConfig){
-
-    //Set call URL extension
-    $server_local = ".com";
-    switch( $ZoHoConfig['ServerLocal'] ){
-        case "AU":
-            $server_local = ".com.au";
-            break;
-        default:
-            $server_local = ".com";
-            break;
-    }
-
-
-    $start_day = converToTz(date('Y-m-d 00:00:00'),'UTC', date_default_timezone_get());
-    $now_time = converToTz(date('Y-m-d H:i:s'),'UTC', date_default_timezone_get());
-    
-    // Initialize cURL session
-    $ch = curl_init();
-
-    // Set cURL options
-    $headerParams = array("Content-Type: application/x-www-form-urlencoded",
-                    "orgId: ".$ZoHoConfig['api_OrgID'],
-                    "Authorization: Zoho-oauthtoken ".$ZoHoConfig['OAuth']['OAuth_AccessToken']);
-
-    $dataParams = http_build_query([
-            'createdTimeRange' => $start_day.",".$now_time,
-            'from' => '0',
-            'limit' => '100',
-            'sortBy' => 'modifiedTime'
-            ]);
-
-    curl_setopt($ch, CURLOPT_URL, "https://desk.zoho".$server_local."/api/v1/tickets/search?".$dataParams); //I DON'T know why, but the ZoHo API is INSISTING that it be taken this way....I probs missed something
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    
-    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 1);
-    curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'GET');
-    
-    curl_setopt($ch, CURLOPT_HTTPHEADER, $headerParams);
-    //curl_setopt($ch, CURLOPT_POSTFIELDS, $dataParams);
-
-    // Execute the cURL request
-    $response = curl_exec($ch);
-    if(curl_getinfo($ch, CURLINFO_HTTP_CODE) !== 200){
-        $response = json_encode( array('data' => array(), 'count' => 0) );
-    }
-    curl_close($ch);
-
-    return $response;
-}
-
-function createdToday_filterProcessing($ZoHoConfig){
+function createdToday_filterProcessing($thisMonth_Tickets){
+    $thisMonth_Tickets = json_decode($thisMonth_Tickets, true);
+    $thisMonth_Tickets = $thisMonth_Tickets['data'];
 
     $start_filter_count = 0;
-    $process_flag = 1;
+    $process_flag = true;
     $output_response_array = array('data' => array(), 'count' => 0); //start empty
 
+    foreach($thisMonth_Tickets as $arr_item) {
 
-    while($process_flag){
-        $fetch_json = getAllZohoTickets_CreatedToday($ZoHoConfig, $start_filter_count);
-        $data_process = json_decode($fetch_json, true);
-
-        foreach ($data_process['data'] as $value) {
-                array_push($output_response_array['data'], $value);
-                $output_response_array['count'] += 1;
-        }
-
-        if($data_process['count'] > $start_filter_count ){
-            $process_flag = 1; //keep going
-            $start_filter_count += 100; //increment for the next page of 100 tickets to check
-        }else{
-            $process_flag = 0; //halt this
+        if(date('Y-m-d', strtotime($arr_item['createdTime'])) == date('Y-m-d')){
+            $output_response_array['count']++;
+            array_push($output_response_array['data'],$arr_item);
         }
     }
     
     return json_encode($output_response_array);
 }
-
-
-
-
 
 
 
@@ -311,6 +258,7 @@ function getAllZohoTickets_ThisMonth($ZoHoConfig, $offset){
             'createdTimeRange' => $start_month.",".$end_month,
             'from' => $offset,
             'limit' => '100',
+            'departmentId' => $ZoHoConfig['api_DeskDepartment']
             ]);
 
     curl_setopt($ch, CURLOPT_URL, "https://desk.zoho".$server_local."/api/v1/tickets/search?".$dataParams); //I DON'T know why, but the ZoHo API is INSISTING that it be taken this way....I probs missed something
@@ -324,6 +272,7 @@ function getAllZohoTickets_ThisMonth($ZoHoConfig, $offset){
 
     // Execute the cURL request
     $response = curl_exec($ch);
+
     if(curl_getinfo($ch, CURLINFO_HTTP_CODE) !== 200){
         $response = json_encode( array('data' => array(), 'count' => 0) );
     }
@@ -332,10 +281,11 @@ function getAllZohoTickets_ThisMonth($ZoHoConfig, $offset){
     return $response;
 }
 
-function rankingFetch_filterProcessing($ZoHoConfig){
+
+function monthlyFetch_filterProcessing($ZoHoConfig){
 
     $start_filter_count = 0;
-    $process_flag = 1;
+    $process_flag = true;
     $output_response_array = array('data' => array(), 'count' => 0); //start empty
 
 
@@ -349,27 +299,29 @@ function rankingFetch_filterProcessing($ZoHoConfig){
         }
 
         if($data_process['count'] > $start_filter_count ){
-            $process_flag = 1; //keep going
+            $process_flag = true; //keep going
             $start_filter_count += 100; //increment for the next page of 100 tickets to check
         }else{
-            $process_flag = 0; //halt this
+            $process_flag = false; //halt this
         }
+
     }
     
     return json_encode($output_response_array);
 }
 
-function rankingFetch_processResults($ZoHoConfig){
 
-    $tickets_thismonth = rankingFetch_filterProcessing($ZoHoConfig);
+function rankingFetch_processResults($tickets_thismonth){
+
     $tickets_thismonth = json_decode($tickets_thismonth, true);
     $tickets_thismonth = $tickets_thismonth['data'];
     $customer_accounts = array();
     $staff_close_account = array();
+    $output_response_array = json_encode( ['customer_ranking' => $customer_accounts, 'staff_ownership' => $staff_close_account] ); //Set empty
 
     if(count($tickets_thismonth) > 0){
 
-        foreach($tickets_thismonth as $arr_item) {            
+        foreach($tickets_thismonth as $arr_item) {
             $acct_name = 'Unknown';
             $acct_id = '0';
             $ticket_assigID = '0';
@@ -408,14 +360,11 @@ function rankingFetch_processResults($ZoHoConfig){
         }
 
         
+        $output_response_array = json_encode( ['customer_ranking' => $customer_accounts, 'staff_ownership' => $staff_close_account] );
     }
     
-
-
-    //print_r( $customer_accounts );
-
     //NEED TO ADD FILTER TO ONLY SHOW CLOSE OWNERS
-    return json_encode( ['customer_ranking' => $customer_accounts, 'staff_ownership' => $staff_close_account] );
+    return $output_response_array;
 }
 
 
@@ -456,7 +405,9 @@ function getAllOpenZohoTickets($ZoHoConfig, $offset){
 
     //Set call URL extension
     $server_local = ".com";
-    switch( $ZoHoConfig['ServerLocal'] ){
+    $servtype = $ZoHoConfig['ServerLocal'];
+
+    switch( $servtype ){
         case "AU":
             $server_local = ".com.au";
             break;
@@ -475,8 +426,10 @@ function getAllOpenZohoTickets($ZoHoConfig, $offset){
 
     $dataParams = http_build_query([
             'from' => $offset,
+            'status' => $ZoHoConfig['tickets_openstatus'],
             'limit' => '100',
-            'sortBy' => 'modifiedTime'
+            'sortBy' => 'modifiedTime',
+            'departmentId' => $ZoHoConfig['api_DeskDepartment']
             ]);
 
     curl_setopt($ch, CURLOPT_URL, "https://desk.zoho".$server_local."/api/v1/tickets/search?".$dataParams); //I DON'T know why, but the ZoHo API is INSISTING that it be taken this way....I probs missed something
@@ -503,7 +456,7 @@ function getAllOpenZohoTickets($ZoHoConfig, $offset){
 function openTickets_filterProcessing($ZoHoConfig){
 
     $start_filter_count = 0;
-    $process_flag = 1;
+    $process_flag = true;
     $output_response_array = array('data' => array(), 'count' => 0); //start empty
 
 
@@ -517,11 +470,12 @@ function openTickets_filterProcessing($ZoHoConfig){
         }
 
         if($data_process['count'] > $start_filter_count ){
-            $process_flag = 1; //keep going
+            $process_flag = true; //keep going
             $start_filter_count += 100; //increment for the next page of 100 tickets to check
         }else{
-            $process_flag = 0; //halt this
+            $process_flag = false; //halt this
         }
+
     }
     
     return json_encode($output_response_array);
@@ -534,89 +488,24 @@ function openTickets_filterProcessing($ZoHoConfig){
 
 
 
+function closedTickets_filterProcessing($thisMonth_Tickets){
+    $thisMonth_Tickets = json_decode($thisMonth_Tickets, true);
+    $thisMonth_Tickets = $thisMonth_Tickets['data'];
 
-/**********************************************************************
- *                     TICKETS CLOSED TODAY
- **********************************************************************/
-
-function getAllZohoTickets_ClosedToday($ZoHoConfig, $offset){
-
-    //Set call URL extension
-    $server_local = ".com";
-    switch( $ZoHoConfig['ServerLocal'] ){
-        case "AU":
-            $server_local = ".com.au";
-            break;
-        default:
-            $server_local = ".com";
-            break;
-    }
-
-
-    $start_day = converToTz(date('Y-m-d 00:00:00', strtotime('-2weeks')),'UTC', date_default_timezone_get()); //starting from 2 weeks ago
-    $now_time = converToTz(date('Y-m-d H:i:s'),'UTC', date_default_timezone_get());
-    
-    
-    // Initialize cURL session
-    $ch = curl_init();
-
-    // Set cURL options
-    $headerParams = array("Content-Type: application/x-www-form-urlencoded",
-                    "orgId: ".$ZoHoConfig['api_OrgID'],
-                    "Authorization: Zoho-oauthtoken ".$ZoHoConfig['OAuth']['OAuth_AccessToken']);
-
-    $dataParams = http_build_query([
-            'status' => "\${CLOSED}",
-            'from' => $offset,
-            'limit' => '100',
-            'modifiedTimeRange' => $start_day.",".$now_time,
-            'sortBy' => 'modifiedTime'
-            ]);
-    
-    curl_setopt($ch, CURLOPT_URL, "https://desk.zoho".$server_local."/api/v1/tickets/search?".$dataParams); //I DON'T know why, but the ZoHo API is INSISTING that it be taken this way....I probs missed something
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    
-    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 1);
-    curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'GET');
-    
-    curl_setopt($ch, CURLOPT_HTTPHEADER, $headerParams);
-    //curl_setopt($ch, CURLOPT_POSTFIELDS, $dataParams);
-
-    // Execute the cURL request
-    $response = curl_exec($ch);
-    if(curl_getinfo($ch, CURLINFO_HTTP_CODE) !== 200){
-        $response = json_encode( array('data' => array(), 'count' => 0) );
-    }
-
-    curl_close($ch);
-
-    return $response;
-}
-
-function closedTickets_filterProcessing($ZoHoConfig){
     $day_start_unix = date('U', strtotime("midnight"));
     $start_filter_count = 0;
     $process_flag = 1;
     $output_response_array = array('data' => array(), 'count' => 0); //start empty
 
 
-    while($process_flag){
-        $fetch_json = getAllZohoTickets_ClosedToday($ZoHoConfig, $start_filter_count);
-        $data_process = json_decode($fetch_json, true);
 
-        foreach ($data_process['data'] as $value) {
-            if( date("U", strtotime($value['closedTime'])) >= $day_start_unix ){
-                array_push($output_response_array['data'], $value);
-                $output_response_array['count'] += 1;
-            }
+    foreach($thisMonth_Tickets as $arr_item) {
+        if( date("U", strtotime($arr_item['closedTime'])) >= $day_start_unix ){
+
+            $output_response_array['count'] += 1;
+            array_push($output_response_array['data'],$arr_item);
         }
 
-        if($data_process['count'] > $start_filter_count ){
-            $process_flag = 1; //keep going
-            $start_filter_count += 100; //increment for the next page of 100 tickets to check
-        }else{
-            $process_flag = 0; //halt this
-        }
     }
     
     return json_encode($output_response_array);
@@ -638,14 +527,24 @@ function closedTickets_filterProcessing($ZoHoConfig){
 /** Output the active call count for each queue */
 function displayZoHoTicketStats($tickets, $today_tickets, $today_closed, $ticket_rankings){
     $avgwait_timehigh_seconds = 86400; //24 hours
+    $limiter_cust = 0;
+    $limiter_own = 0;
 
     $ticket_rankings = json_decode($ticket_rankings,true);
     $ticket_rankings_cust = $ticket_rankings['customer_ranking'];
-        usort($ticket_rankings_cust, function($a, $b){ return strcmp($b['count'] , $a['count']); });
-    $ticket_rankings_owners = $ticket_rankings['staff_ownership'];
-        usort($ticket_rankings_owners, function($a, $b){ return strcmp($b['count'] , $a['count']); });
+        //usort($ticket_rankings_cust, function($a, $b){ return strcmp($b['count'] , $a['count']); });
+        array_multisort(array_column($ticket_rankings_cust, 'count'), SORT_DESC, $ticket_rankings_cust);
 
-    $tickets = json_decode($tickets,true);
+
+    $ticket_rankings_owners = $ticket_rankings['staff_ownership'];
+        //usort($ticket_rankings_owners, function($a, $b){ return strcmp($b['count'] , $a['count']); });
+        array_multisort(array_column($ticket_rankings_owners, 'count'), SORT_DESC, $ticket_rankings_owners);
+
+
+
+
+        
+    $tickets = json_decode($tickets, true);
     $tickets = $tickets['data'];
 
     $today_tickets = json_decode($today_tickets,true);
@@ -730,14 +629,19 @@ function displayZoHoTicketStats($tickets, $today_tickets, $today_closed, $ticket
     $output_html .= '<div class="sidebyside"><table class="substats">
                         <thead>
                             <tr>
-                                <th colspan="2">Highest 5 Customers</th>
+                                <th colspan="2">Highest 5 Customers ('.date('M').')</th>
                             </tr>
                         </thead>
                         <tbody>';
 
-    for($i=0; $i<sizeof($ticket_rankings_cust); $i++){
-        $output_html .= "<tr><td class=\"non_statusgrey\">" . $ticket_rankings_cust[$i]['name'] . "</td>";
-        $output_html .= "<td class=\"non_statusgrey\"><strong>"  . $ticket_rankings_cust[$i]['count'] . "</strong></td></tr>";
+    foreach($ticket_rankings_cust as $cust_tix) {
+        if( $cust_tix['name'] != 'Unknown' ){
+            $output_html .= "<tr><td class=\"non_statusgrey\">" . $cust_tix['name'] . "</td>";
+            $output_html .= "<td class=\"non_statusgrey\"><strong>"  . $cust_tix['count'] . "</strong></td></tr>";
+            $limiter_cust++;
+            
+            if($limiter_cust >= 5){ break; }
+        }
     }
 
     $output_html .=  "</tbody>
@@ -748,22 +652,23 @@ function displayZoHoTicketStats($tickets, $today_tickets, $today_closed, $ticket
     $output_html .= '<div class="sidebyside"><table class="substats">
                         <thead>
                             <tr>
-                                <th colspan="2">Top 5 Closing Owners</th>
+                                <th colspan="2">Top 5 Closing Owners ('.date('M').')</th>
                             </tr>
                         </thead>
                         <tbody>';
 
-    for($i=0; $i<sizeof($ticket_rankings_owners); $i++){
-        $output_html .= "<tr><td class=\"non_statusgrey\">" . $ticket_rankings_owners[$i]['name'] . "</td>";
-        $output_html .= "<td class=\"non_statusgrey\"><strong>"  . $ticket_rankings_owners[$i]['count'] . "</strong></td></tr>";
+    foreach($ticket_rankings_owners as $ownr_tix) {
+        if( $ownr_tix['name'] != 'Unassigned' ){
+            $output_html .= "<tr><td class=\"non_statusgrey\">" . $ownr_tix['name'] . "</td>";
+            $output_html .= "<td class=\"non_statusgrey\"><strong>"  . $ownr_tix['count'] . "</strong></td></tr>";
+            $limiter_own++;
+            
+            if($limiter_own >= 5){ break; }
+        }
     }
 
     $output_html .=  "</tbody>
                     </table></div>";
-
-
-
-
 
 
 
@@ -774,69 +679,6 @@ function displayZoHoTicketStats($tickets, $today_tickets, $today_closed, $ticket
 
 
 
-
-
-
-
-
-
-/**
-
-function getAll_custAccountTickets_thisMonth($ZoHoConfig, $offset){
-
-     //Set call URL extension
-    $server_local = ".com";
-    switch( $ZoHoConfig['ServerLocal'] ){
-        case "AU":
-            $server_local = ".com.au";
-            break;
-        default:
-            $server_local = ".com";
-            break;
-    }
-
-
-    $start_day = converToTz(date('Y-m-01 00:00:00'),'UTC', date_default_timezone_get()); //starting from 2 weeks ago
-    $now_time = converToTz(date('Y-m-d H:i:s'),'UTC', date_default_timezone_get());
-    
-    
-    // Initialize cURL session
-    $ch = curl_init();
-
-    // Set cURL options
-    $headerParams = array("Content-Type: application/x-www-form-urlencoded",
-                    "orgId: ".$ZoHoConfig['api_OrgID'],
-                    "Authorization: Zoho-oauthtoken ".$ZoHoConfig['OAuth']['OAuth_AccessToken']);
-
-    $dataParams = http_build_query([
-            'status' => "\${CLOSED}",
-            'from' => $offset,
-            'limit' => '100',
-            'modifiedTimeRange' => $start_day.",".$now_time,
-            'sortBy' => 'modifiedTime'
-            ]);
-    
-    curl_setopt($ch, CURLOPT_URL, "https://desk.zoho".$server_local."/api/v1/tickets/search?".$dataParams); //I DON'T know why, but the ZoHo API is INSISTING that it be taken this way....I probs missed something
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    
-    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 1);
-    curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'GET');
-    
-    curl_setopt($ch, CURLOPT_HTTPHEADER, $headerParams);
-    //curl_setopt($ch, CURLOPT_POSTFIELDS, $dataParams);
-
-    // Execute the cURL request
-    $response = curl_exec($ch);
-    if(curl_getinfo($ch, CURLINFO_HTTP_CODE) !== 200){
-        $response = json_encode( array('data' => array(), 'count' => 0) );
-    }
-
-    curl_close($ch);
-
-    return $response;
-
-}
-*/
 
 
 /** Calculate time from a start date/time until now.
@@ -864,13 +706,18 @@ function humanTiming($time){
 
 }
 
+// Function to log data to a file - Testing only!
+function log_to_file($data, $log_filename){
+    //$log_filename = 'log_output.txt';
+    file_put_contents($log_filename, $data . PHP_EOL, FILE_APPEND);
+}
 
 
 ?>
 
 <br />
 <input type="checkbox" id="ReloadEnable" name="ReloadEnable" value="Enable Reload">
-<label for="ReloadEnable"> Pause 60 second reload?</label><br>
+<label for="ReloadEnable"> Pause 2 Minute reload?</label><br>
 <input type="button" name="Dash Settings" id="ZohoSettings" value="Dash Settings" />
 
 

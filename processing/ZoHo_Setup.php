@@ -14,7 +14,7 @@ if( isset($_POST['request']) && $_POST['request'] == 'regRefresh' ){
 
     if( isset($response['token_type']) && $response['token_type'] == "Bearer" ){
          //write_to_file("zoho.txt", $response['access_token']);
-        echo update_ZoHoConfig($_POST['status'], $_POST['workspace'], $_POST['id'], $_POST['secret'], $_POST['code'], $response['refresh_token'], $response['access_token'], date('U', strtotime('+'.$response['expires_in'].' seconds')), $_POST['api_OrgID'], $_POST['api_DeskID'], $_POST['server_local'] );
+        echo update_ZoHoConfig($_POST['status'], $_POST['workspace'], $_POST['id'], $_POST['secret'], $_POST['code'], $response['refresh_token'], $response['access_token'], date('U', strtotime('+'.$response['expires_in'].' seconds')), $_POST['api_OrgID'], $_POST['api_DeskID'], $_POST['server_local'], $_POST['ticket_openstat'] );
     }
 
 }
@@ -27,7 +27,7 @@ if( isset($_POST['request']) && $_POST['request'] == 'tokenRefresh' ){
     print_r( $response );
 
     if( isset($response['token_type']) && $response['token_type'] == "Bearer" ){
-        echo update_ZoHoConfig($existing_zoho['enabled'], $existing_zoho['workspace_name'], $existing_zoho['OAuth']['OAuth_ClientID'], $existing_zoho['OAuth']['OAuth_ClientSecret'], $existing_zoho['OAuth']['OAuth_InitCode'], $existing_zoho['OAuth']['OAuth_RefreshToken'], $response['access_token'], date('U', strtotime('+'.$response['expires_in'].' seconds')), $existing_zoho['api_OrgID'], $existing_zoho['api_DeskDepartment'], $existing_zoho['ServerLocal'] );
+        echo update_ZoHoConfig($existing_zoho['enabled'], $existing_zoho['workspace_name'], $existing_zoho['OAuth']['OAuth_ClientID'], $existing_zoho['OAuth']['OAuth_ClientSecret'], $existing_zoho['OAuth']['OAuth_InitCode'], $existing_zoho['OAuth']['OAuth_RefreshToken'], $response['access_token'], date('U', strtotime('+'.$response['expires_in'].' seconds')), $existing_zoho['api_OrgID'], $existing_zoho['api_DeskDepartment'], $existing_zoho['ServerLocal'], $_POST['ticket_openstat'] );
     }
 
 }
@@ -58,6 +58,7 @@ function read_ZoHoConfig(){
 				),
 			'LastSave' => '',
             'ServerLocal' => 'AU',
+            'tickets_openstatus' => 'Open,Pending,In Progress',
 			);
 
 		//Write out to file
@@ -69,7 +70,7 @@ function read_ZoHoConfig(){
 	return $config['ZoHo'];
 }
 
-function update_ZoHoConfig($status, $workspace, $oa_clientid, $oa_secret, $oa_authcode, $oa_refreshtoken, $oa_accesstoken, $oa_expiry, $orgid, $deptid, $serverlocal){
+function update_ZoHoConfig($status, $workspace, $oa_clientid, $oa_secret, $oa_authcode, $oa_refreshtoken, $oa_accesstoken, $oa_expiry, $orgid, $deptid, $serverlocal, $ticket_openstat){
     $read_out = read_from_config();
     $config = json_decode($read_out, true);
 
@@ -89,6 +90,7 @@ function update_ZoHoConfig($status, $workspace, $oa_clientid, $oa_secret, $oa_au
             ),
         'LastSave' => date('U'),
         'ServerLocal' => $serverlocal,
+        'tickets_openstatus' => $ticket_openstat,
         );
 
     //Write out to file
