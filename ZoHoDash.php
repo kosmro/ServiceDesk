@@ -12,6 +12,8 @@
                 window.location.href = "setup.php";
             });
 
+
+            check_serviceStatus();
         });
         
         /** If checkbox unchecked, reload the page every 30 seconds */
@@ -21,6 +23,61 @@
             }
         }, 120000);
         
+
+
+
+
+
+        function check_serviceStatus(){
+
+            var html_line = '<tr><td class="non_statusgrey" colspan="2"><i>Loading....</i></td></tr>';
+            $("#server_status_table tbody").html(html_line);
+
+            //Send all data to the CREATE PHP script
+            $.ajax({
+                type: "GET",
+                data: "",
+                processData: false,
+                contentType: false,
+                url: "processing/serviceonline.php",
+                context: document.body,
+                success: function(data){
+                    $("#server_status_table tbody").html(""); //clear ready to go
+                    try{
+                        var data = JSON.parse(data);
+                        if( data.hasOwnProperty("status") && data['status'] == 1 ){
+                            for(var i=0; i<data['response'].length; i++){
+                                var out_var = data['response'][i];
+                                var response_code = out_var['http_code'];
+
+                                switch( response_code ){
+                                case 200:
+                                    //response_code = 'ONLINE';
+                                    var html_line = '<tr><td class="non_statusgrey">' + out_var['disp_name'] + '</td><td class="count_low">ONLINE</td></tr>';
+                                    break;
+                                default:
+                                    var html_line = '<tr><td class="non_statusgrey">' + out_var['disp_name'] + '</td><td class="count_high">OFFLINE</td></tr>';
+                                    break;
+                                }
+
+                                $("#server_status_table tbody").append(html_line);
+
+                            }
+
+                        }else{
+                            var html_line = '<tr><td class="non_statusgrey" colspan="2">No Servers</td></tr>';
+                            $("#server_status_table tbody").html(html_line);
+                        }
+
+                    }catch(err){
+                        //Make sure unusual errors are caught
+                        var html_line = '<tr><td class="non_statusgrey" colspan="2">No Servers</td></tr>';
+                        $("#server_status_table tbody").html(html_line);
+                    }
+                    
+                }
+            });
+        }
 
     </script>
 
@@ -625,7 +682,7 @@ function displayZoHoTicketStats($tickets, $today_tickets, $today_closed, $ticket
                     </table>";
 
 
-    // OUTPUT STAFF STATUS RANKINGS
+    // OUTPUT CLIENT STATUS RANKINGS
     $output_html .= '<div class="sidebyside"><table class="substats">
                         <thead>
                             <tr>
@@ -671,8 +728,29 @@ function displayZoHoTicketStats($tickets, $today_tickets, $today_closed, $ticket
                     </table></div>";
 
 
+    // SETUP TABLE FOR SERVICE STATUS MONITOR
+    $output_html .= '<div class="sidebyside"><table class="substats" id="server_status_table">
+                            <thead>
+                                <tr>
+                                    <th colspan="2">Service Status</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>';
+// SETUP TABLE FOR SERVICE STATUS MONITOR
+    $output_html .= '<div class="sidebyside"><table class="substats">
+                            <thead>
+                                <tr>
+                                    <th colspan="2">Something</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>';
 
     print $output_html;
+
     print "Last refresh: ".date("h:i:sa, j/n/Y");
 }
 
